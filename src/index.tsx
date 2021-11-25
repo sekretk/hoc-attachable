@@ -23,10 +23,10 @@ class HOCWrapper<T extends unknown> {
     add = (beh: (comp: FC<T>) => FC<T>) => new HOCWrapper(beh(this.component));
 }
 
-// HOCWrapper.init()
-
-// const createHoc = <T extends unknown>(component: FC<T>) =>
-//     createHoc(component).add(behaviour01).add(behaviour02).result();
+const attachableComponentFabric = <T extends unknown>(
+    component: FC<T>,
+    ...behaviours: ((comp: FC<T>) => FC<T>)[]
+) => behaviours?.reduce((acc, val) => val(acc), component) ?? component;
 
 export const withSelectAllOnFocus = <
     P extends React.InputHTMLAttributes<HTMLInputElement>
@@ -62,12 +62,22 @@ export const withStuttering = <
 
 function App() {
     const SomeInput = (props) => <input {...props} />;
+
+    //Naive way
     const InputSelectAll = withSelectAllOnFocus(SomeInput);
     const StutteredInputSelectAll = withStuttering(InputSelectAll);
 
+    //class way
     const ResComponent = HOCWrapper.init(SomeInput)
         .add(withSelectAllOnFocus)
         .add(withStuttering).component;
+
+    //fabric function way
+    const ResComponentFromFabric = attachableComponentFabric(
+        SomeInput,
+        withSelectAllOnFocus,
+        withStuttering,
+    );
 
     return (
         <div className="App">
@@ -78,7 +88,9 @@ function App() {
             <br />
             <StutteredInputSelectAll value={'stutter'} />
              <br />
-            <ResComponent value={'via fabric'} />
+            <ResComponent value={'via class'} />
+            <br />
+            <ResComponentFromFabric value={'via fabric'} />
         </div>
     );
 }
