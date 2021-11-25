@@ -2,13 +2,31 @@ import * as React from 'react';
 import { render } from 'react-dom';
 import { ThemeProvider } from './themeContext';
 import { WithThemeHello } from './hello';
-
 import './styles.css';
 import {
     ChangeEventHandler,
+    FC,
     FocusEventHandler,
     KeyboardEventHandler,
 } from 'react';
+
+class HOCWrapper<T extends unknown> {
+    static init = <T extends unknown>(component: FC<T>) =>
+        new HOCWrapper(component);
+
+    readonly component: FC<T>;
+
+    constructor(component: FC<T>) {
+        this.component = component;
+    }
+
+    add = (beh: (comp: FC<T>) => FC<T>) => new HOCWrapper(beh(this.component));
+}
+
+// HOCWrapper.init()
+
+// const createHoc = <T extends unknown>(component: FC<T>) =>
+//     createHoc(component).add(behaviour01).add(behaviour02).result();
 
 export const withSelectAllOnFocus = <
     P extends React.InputHTMLAttributes<HTMLInputElement>
@@ -47,6 +65,10 @@ function App() {
     const InputSelectAll = withSelectAllOnFocus(SomeInput);
     const StutteredInputSelectAll = withStuttering(InputSelectAll);
 
+    const ResComponent = HOCWrapper.init(SomeInput)
+        .add(withSelectAllOnFocus)
+        .add(withStuttering).component;
+
     return (
         <div className="App">
             <ThemeProvider>
@@ -55,6 +77,8 @@ function App() {
             <InputSelectAll value={'select all on focus'} />
             <br />
             <StutteredInputSelectAll value={'stutter'} />
+             <br />
+            <ResComponent value={'via fabric'} />
         </div>
     );
 }
