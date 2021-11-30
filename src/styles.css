@@ -2,3 +2,11 @@
     font-family: sans-serif;
     text-align: center;
 }
+
+.owned {
+    color: red;
+}
+
+.calculated {
+    color: gray;
+}

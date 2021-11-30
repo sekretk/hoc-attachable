@@ -7,7 +7,13 @@ import {
     ChangeEventHandler,
     FC,
     FocusEventHandler,
+    Fragment,
     KeyboardEventHandler,
+    SyntheticEvent,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 class HOCWrapper<T extends unknown> {
@@ -60,8 +66,62 @@ export const withStuttering = <
     return <WrappedComponent onKeyDown={onKeyDown} {...props} value={val} />;
 };
 
-function App() {
-    const SomeInput = (props) => <input {...props} />;
+interface IValorized<T> {
+    value: T;
+    onChanged: ChangeEventHandler<T>;
+}
+
+export const withPristine = <T extends unknown, P extends IValorized<T>>(
+    WrappedComponent: React.FC<P>,
+) => (
+    props: P & {
+        onOwnedChange: (val: boolean) => void;
+    },
+) => {
+    const { value, onOwnedChange } = props;
+
+    const [owned, setOwned] = useState(false);
+    const [valProp, setPropValue] = useState(props.value);
+
+    const owning = useCallback(
+        (own: boolean) => {
+            if (owned !== own) {
+                onOwnedChange(own);
+            }
+            setOwned(own);
+        },
+        [owned],
+    );
+
+    useEffect(() => {
+        if (value !== valProp) {
+            owning(false);
+            setPropValue(value);
+        }
+    }, [value]);
+
+    const onFocus: FocusEventHandler<P> = (e) => {
+        owning(true);
+        return e;
+    };
+
+    const onChange: ChangeEventHandler<P> = (e) => {
+        setPropValue(e.target.value);
+    };
+
+    return (
+        <WrappedComponent
+            onFocus={onFocus}
+            {...props}
+            className={owned ? 'owned' : 'calculated'}
+            value={valProp}
+            onChange={onChange}
+        />
+    );
+};
+
+const App = React.memo(() => {
+    const SomeInput = useCallback((props) => <input {...props} />, []);
 
     //Naive way
     const InputSelectAll = withSelectAllOnFocus(SomeInput);
@@ -79,11 +139,28 @@ function App() {
         withStuttering,
     );
 
+    const PristinedInput = useMemo(() => withPristine(SomeInput), [SomeInput]);
+
+    const [pVal, setPval] = useState('default value');
+
+    const onClick = () => setPval(Math.random().toString());
+
+    const onPristineChanged = (val) => console.log('pristine:', val);
+
+    const onChanged: ChangeEventHandler<HTMLInputElement> = (e) => {
+        console.log(e.target.value);
+        setPval(e.target.value);
+    };
+
+    const [roVal, setROVal] = useState('im not not readonly');
+
     return (
         <div className="App">
-            <ThemeProvider>
+            {/* <ThemeProvider>
                 <WithThemeHello loading={false} title="Select All Sandbox" />
             </ThemeProvider>
+            <input value={roVal} onChange={(e) => setROVal(e.target.value)} />
+            <br />
             <InputSelectAll value={'select all on focus'} />
             <br />
             <StutteredInputSelectAll value={'stutter'} />
@@ -91,9 +168,21 @@ function App() {
             <ResComponent value={'via class'} />
             <br />
             <ResComponentFromFabric value={'via fabric'} />
+            <br /> */}
+            <PristinedInput
+                value={pVal}
+                onOwnedChange={(val) => console.log('owned:', val)}
+                onChange={(e) => setPval(e.target.value)}
+            />
+            <button onClick={onClick}>Cal value</button>
+            {/* <br />
+            <SomeInput
+                value={roVal}
+                onChange={(e) => setROVal(e.target.value)}
+            /> */}
         </div>
     );
-}
+});
 
 const rootElement = document.getElementById('root');
 render(<App />, rootElement);
