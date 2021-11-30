@@ -82,6 +82,8 @@ export const withPristine = <T extends unknown, P extends IValorized<T>>(
 
     const [owned, setOwned] = useState(false);
     const [valProp, setPropValue] = useState(props.value);
+    const [focused, setFocused] = React.useState(false);
+    const onBlur = () => setFocused(false);
 
     const owning = useCallback(
         (own: boolean) => {
@@ -96,7 +98,9 @@ export const withPristine = <T extends unknown, P extends IValorized<T>>(
     useEffect(() => {
         if (value !== valProp) {
             owning(false);
-            setPropValue(value);
+            if (!focused) {
+                setPropValue(value);
+            }
         }
     }, [value]);
 
@@ -153,6 +157,14 @@ const App = React.memo(() => {
     };
 
     const [roVal, setROVal] = useState('im not not readonly');
+
+    const [inpVal, setInpVal] = useState('im inpval');
+
+    const InputElem = <input value={inpVal} />;
+
+    useEffect(() => {
+        setInterval(onClick, 5000);
+    }, []);
 
     return (
         <div className="App">
